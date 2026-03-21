@@ -12,10 +12,6 @@ Collection:
 - max supply: `101`
 - venue: `SuperRare`
 
-## Hackathon Context
-
-`Rare SynETHsis` was built during the Synthesis hackathon as a SuperRare-native art/culture project. Because the hackathon allowed only one official entry, this repo is published as the public record of that build rather than as a separate second submission.
-
 ## Live Status
 
 Rare SynETHsis is live on Ethereum mainnet.

@@ -14,10 +14,6 @@ The system is built around 10 macro states: Dormant, Charged, Compression, Dense
 
 Genesis was launched live on Ethereum mainnet through SuperRare and Bankr as `Rare SynETHsis 001 - Fracture After Sale`, the founding human-agent-selected invocation of the system. The collection contract, the genesis mint, and the first auction configuration are all live onchain.
 
-## Hackathon Context
-
-`Rare SynETHsis` was built during the Synthesis hackathon as a SuperRare-native art/culture project. Because the hackathon allowed only one official entry, this document serves as the public record of that build rather than a separate second submission.
-
 ## Problem Statement
 
 Most onchain generative art systems treat the final image as the artwork and the marketplace as an external layer where the work is merely sold.
