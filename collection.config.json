@@ -8,5 +8,7 @@
   "maxSupply": 101,
   "checkCadenceHours": 12,
   "cooldownHours": 24,
-  "tokenPrefix": "Rare SynETHsis"
+  "tokenPrefix": "Rare SynETHsis",
+  "cycleThresholdHours": 72,
+  "silenceThresholdHours": 168
 }

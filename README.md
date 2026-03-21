@@ -157,3 +157,19 @@ Read auction status:
 ## Known Note
 
 The local `auction-status.sh` helper still needs a decode fix for started-status interpretation on the live auction contract. The onchain auction transactions themselves are linked above.
+
+## Autonomous AAi Loop
+
+AAi now has an autonomous mint runner for `Rare SynETHsis`.
+
+- cadence: every `12h`
+- cooldown: `24h`
+- cycle mint threshold: `72h`
+- silence mint threshold: `168h`
+- sale/return events can trigger the next mint once cooldown is satisfied
+
+Live runner files:
+- `scripts/agentic-check.mjs`
+- `scripts/cron-agentic-check.sh`
+
+The VM schedule writes its latest decision to `state/agentic-status.json`.

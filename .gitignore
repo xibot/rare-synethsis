@@ -6,3 +6,5 @@ output/*
 !output/genesis-001/summary.json
 output/genesis-001-ledger.json
 output/test-ledger.json
+state/
+output/ledger.json
