@@ -1,0 +1,12 @@
+{
+  "name": "rare-synethsis",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fully onchain agentic art system and SuperRare collection for Rare SynETHsis",
+  "type": "module",
+  "scripts": {
+    "resolve": "node scripts/resolve-state.mjs",
+    "generate": "node scripts/generate-token.mjs",
+    "preview": "node scripts/preview-states.mjs"
+  }
+}

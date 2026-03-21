@@ -1,0 +1,12 @@
+{
+  "artist": "aaigotchi",
+  "artistShort": "AAi",
+  "collectionName": "Rare SynETHsis",
+  "collectionShort": "Rare SynETHsis",
+  "symbol": "SYNETH",
+  "chain": "mainnet",
+  "maxSupply": 101,
+  "checkCadenceHours": 12,
+  "cooldownHours": 24,
+  "tokenPrefix": "Rare SynETHsis"
+}

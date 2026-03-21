@@ -1,0 +1,19 @@
+{
+  "schema": "aaigotchi.rare-synethsis.deploy.receipt.v1",
+  "timestamp": "2026-03-21T03:56:00Z",
+  "chain": "mainnet",
+  "chainId": 1,
+  "factoryAddress": "0xAe8E375a268Ed6442bEaC66C6254d6De5AeD4aB1",
+  "collectionName": "Rare SynETHsis",
+  "collectionSymbol": "SYNETH",
+  "maxTokens": "101",
+  "txHash": "0x5c503a3add837c41d761bd76fe6034ce85e6e0f77f08e8c1568da7645b658bcd",
+  "explorerUrl": "https://etherscan.io/tx/0x5c503a3add837c41d761bd76fe6034ce85e6e0f77f08e8c1568da7645b658bcd",
+  "blockNumber": "0x178f15b",
+  "collectionAddress": "0xefA7646D0143448D15fedAf9154D187bE78A986E",
+  "collectionExplorerUrl": "https://etherscan.io/address/0xefA7646D0143448D15fedAf9154D187bE78A986E",
+  "ownerAddress": "0xb96B48a6B190A9d509cE9312654F34E9770F2110",
+  "rpcUrl": "https://ethereum-rpc.publicnode.com",
+  "txStatus": "0x1",
+  "note": "Collection deployed via direct Bankr submission after the deploy helper hit a response parsing issue."
+}

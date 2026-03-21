@@ -1,0 +1,10 @@
+{
+  "chain": "mainnet",
+  "contractMode": "own-deployed",
+  "collectionContract": "",
+  "deployReceiptFile": "",
+  "receiver": "",
+  "royaltyReceiver": "",
+  "rpcUrl": "",
+  "descriptionPrefix": "Rare SynETHsis via aaigotchi"
+}

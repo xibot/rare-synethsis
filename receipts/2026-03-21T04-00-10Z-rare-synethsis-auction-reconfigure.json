@@ -1,0 +1,20 @@
+{
+  "schema": "aaigotchi.rare-synethsis.auction-reconfigure.receipt.v1",
+  "timestamp": "2026-03-21T04:00:10Z",
+  "chain": "mainnet",
+  "chainId": 1,
+  "auctionContract": "0x6D7c44773C52D396F43c2D511B81aa168E9a7a42",
+  "collectionContract": "0xefA7646D0143448D15fedAf9154D187bE78A986E",
+  "tokenId": "1",
+  "seller": "0xb96B48a6B190A9d509cE9312654F34E9770F2110",
+  "startingPriceEth": "0.08",
+  "startingPriceWei": "80000000000000000",
+  "durationSeconds": "86400",
+  "startTime": "1774065673",
+  "currency": "0x0000000000000000000000000000000000000000",
+  "txHash": "0xfe0229178bc3822f54e4b7e4f5ace56cb73e1752caeca8d43a37b93dbbde333f",
+  "explorerUrl": "https://etherscan.io/tx/0xfe0229178bc3822f54e4b7e4f5ace56cb73e1752caeca8d43a37b93dbbde333f",
+  "blockNumber": "24703364",
+  "txStatus": "0x1",
+  "note": "Explicit start-time auction reconfigure sent via direct Bankr submission after the local auction helper defaulted startTime to 0."
+}

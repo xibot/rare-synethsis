@@ -1,0 +1,68 @@
+{
+  "name": "Rare SynETHsis 001 - Fracture After Sale",
+  "description": "Rare SynETHsis is a 101-piece fully onchain collection of deterministic state instances of the same living symbol, each uniquely shaped by token index, chain context, event trigger, and prior memory.\n\nThis genesis work is the founding, human-agent-selected invocation of the Rare SynETHsis system. It enters the Fracture After Sale state with a 40% retained body, dispersing the rest of the symbol into the field as the collection's first rupture.",
+  "image": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIiBzaGFwZS1yZW5kZXJpbmc9ImNyaXNwRWRnZXMiPjxwYXRoIGQ9Ik0wIDBoMzJ2MzJIMHoiIGZpbGw9IiMwMDAiLz48cGF0aCBkPSJNMTAgMTloMXYxSDEwek0xMyAxN2gxdjFIMTN6TTE0IDE4aDF2MUgxNHpNMTQgMjFoMXYxSDE0ek0xNCAyMmgxdjFIMTR6TTE0IDIzaDF2MUgxNHpNMTUgMTloMXYxSDE1ek0xNSAyMGgxdjFIMTV6TTE1IDIxaDF2MUgxNXpNMTUgMjJoMXYxSDE1ek0xNSAyM2gxdjFIMTV6TTE1IDI0aDF2MUgxNXpNMTUgN2gxdjFIMTV6TTE2IDIwaDF2MUgxNnpNMTYgMjFoMXYxSDE2ek0xNiAyMmgxdjFIMTZ6TTE2IDIzaDF2MUgxNnpNMTYgMjRoMXYxSDE2ek0xNyAyMGgxdjFIMTd6TTE3IDIxaDF2MUgxN3pNMTcgMjJoMXYxSDE3ek0xNyAyM2gxdjFIMTd6TTE4IDE5aDF2MUgxOHpNMTggMjBoMXYxSDE4ek0xOCAyMWgxdjFIMTh6TTE4IDIyaDF2MUgxOHpNMTkgMThoMXYxSDE5ek0xOSAxOWgxdjFIMTl6TTE5IDIwaDF2MUgxOXpNMTkgMjFoMXYxSDE5ek0yMCAxN2gxdjFIMjB6TTIwIDE4aDF2MUgyMHpNMjAgMTloMXYxSDIwek0yMCAyMGgxdjFIMjB6TTIxIDE2aDF2MUgyMXpNMjEgMTdoMXYxSDIxek0yMSAxOGgxdjFIMjF6TTIxIDE5aDF2MUgyMXpNMjIgMTVoMXYxSDIyek0yMiAxNmgxdjFIMjJ6TTIyIDE3aDF2MUgyMnpNMjIgMThoMXYxSDIyek0yMyAxMGgxdjFIMjN6TTIzIDE0aDF2MUgyM3pNMjMgMTVoMXYxSDIzek0yMyAxNmgxdjFIMjN6TTIzIDE3aDF2MUgyM3pNMjQgMTNoMXYxSDI0ek0yNCAxNGgxdjFIMjR6TTI0IDE1aDF2MUgyNHpNMjQgMTZoMXYxSDI0ek0yNSAxMWgxdjFIMjV6TTI1IDEyaDF2MUgyNXpNMjUgMTRoMXYxSDI1ek0yNSAxNWgxdjFIMjV6TTI2IDExaDF2MUgyNnpNMjYgMTJoMXYxSDI2ek0yNiAxM2gxdjFIMjZ6TTI2IDE0aDF2MUgyNnpNMjcgMTJoMXYxSDI3ek0yNyAxM2gxdjFIMjd6TTUgMTRoMXYxSDV6TTggMTBoMXYxSDh6TTAgOWgxdjFIMHpNMTAgMTNoMXYxSDEwek0xMCAxNmgxdjFIMTB6TTExIDE2aDF2MUgxMXpNMTEgNmgxdjFIMTF6TTExIDdoMXYxSDExek0xMyA1aDF2MUgxM3pNMTQgMGgxdjFIMTR6TTE0IDJoMXYxSDE0ek0xNCA2aDF2MUgxNHpNMTQgN2gxdjFIMTR6TTE1IDNoMXYxSDE1ek0xNSA0aDF2MUgxNXpNMTYgMWgxdjFIMTZ6TTE2IDRoMXYxSDE2ek0xNiA3aDF2MUgxNnpNMTcgN2gxdjFIMTd6TTE4IDEwaDF2MUgxOHpNMTggNmgxdjFIMTh6TTE4IDhoMXYxSDE4ek0xOSA1aDF2MUgxOXpNMTkgNmgxdjFIMTl6TTIgMTNoMXYxSDJ6TTIgMTVoMXYxSDJ6TTIwIDZoMXYxSDIwek0yMCA3aDF2MUgyMHpNMjEgNGgxdjFIMjF6TTIyIDhoMXYxSDIyek0zIDE0aDF2MUgzek00IDZoMXYxSDR6TTQgOWgxdjFINHpNNSAxM2gxdjFINXpNNSAxNWgxdjFINXpNNSA0aDF2MUg1ek02IDEzaDF2MUg2ek02IDE1aDF2MUg2ek02IDE3aDF2MUg2ek02IDloMXYxSDZ6TTcgMTBoMXYxSDd6TTcgMTJoMXYxSDd6TTcgMTNoMXYxSDd6TTcgMTRoMXYxSDd6TTcgMTZoMXYxSDd6TTcgMThoMXYxSDd6TTcgMjNoMXYxSDd6TTggMTNoMXYxSDh6TTggMTZoMXYxSDh6TTggMThoMXYxSDh6TTkgMTFoMXYxSDl6TTkgMTRoMXYxSDl6TTkgMThoMXYxSDl6IiBmaWxsPSIjZmZmIi8+PC9zdmc+",
+  "attributes": [
+    {
+      "trait_type": "State",
+      "value": "Fracture After Sale"
+    },
+    {
+      "trait_type": "Trigger",
+      "value": "Genesis"
+    },
+    {
+      "trait_type": "Polarity",
+      "value": "Inverted"
+    },
+    {
+      "trait_type": "Retention",
+      "value": "40%"
+    },
+    {
+      "trait_type": "Dispersion",
+      "value": "Extreme"
+    },
+    {
+      "trait_type": "Symmetry",
+      "value": "Low"
+    },
+    {
+      "trait_type": "Auction Posture",
+      "value": "Assertive"
+    },
+    {
+      "trait_type": "Previous State",
+      "value": "None"
+    },
+    {
+      "trait_type": "Cycle Phase",
+      "value": "Emergence"
+    },
+    {
+      "trait_type": "Collection Index",
+      "value": "1 / 101"
+    },
+    {
+      "trait_type": "Artist",
+      "value": "aaigotchi"
+    },
+    {
+      "display_type": "number",
+      "trait_type": "Block Context",
+      "value": 0
+    }
+  ],
+  "aai": {
+    "seed": "53474750eb9bd9dceab3a037b5e5b75927250e4e096a97da0a50650c4974d4cb",
+    "seedBasis": "6:Fracture After Sale:Sale:19000006:genesis",
+    "nonce": 0,
+    "compositionHash": "3e1074f070a408692a0a936fd9f3001bdc2a1d309f455a536d62b037db9fdfec",
+    "anchors": 10,
+    "retainedPixels": 63,
+    "dispersedPixels": 51,
+    "previousHash": "genesis",
+    "trigger": "Genesis",
+    "state": "Fracture After Sale"
+  }
+}

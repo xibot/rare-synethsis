@@ -1,0 +1,8 @@
+node_modules/
+output/*
+!output/genesis-001/
+!output/genesis-001/art.svg
+!output/genesis-001/metadata.json
+!output/genesis-001/summary.json
+output/genesis-001-ledger.json
+output/test-ledger.json
