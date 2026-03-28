@@ -167,6 +167,8 @@ AAi now has an autonomous mint runner for `Rare SynETHsis`.
 - cycle mint threshold: `72h`
 - silence mint threshold: `168h`
 - sale/return events can trigger the next mint once cooldown is satisfied
+- pieces `2` through `101` use a flat auction minimum of `0.00101 ETH`
+- once an auction is settleable, the runner settles it before deciding whether to mint the next piece
 
 Live runner files:
 - `scripts/agentic-check.mjs`
