@@ -122,6 +122,10 @@ NEEDS_APPROVAL="false"
 if [ "$SKIP_APPROVAL" != "1" ] && [ "$APPROVAL_STATUS" != "true" ]; then
   NEEDS_APPROVAL="true"
 fi
+EFFECTIVE_START_TIME="$START_TIME"
+if [ "$EFFECTIVE_START_TIME" = "0" ]; then
+  EFFECTIVE_START_TIME="$(date +%s)"
+fi
 
 CONFIGURE_CALLDATA="$(cast calldata 'configureAuction(bytes32,address,uint256,uint256,address,uint256,uint256,address[],uint8[])' \
   "$AUCTION_TYPE" \
@@ -130,7 +134,7 @@ CONFIGURE_CALLDATA="$(cast calldata 'configureAuction(bytes32,address,uint256,ui
   "$STARTING_PRICE_WEI" \
   "$CURRENCY_ADDRESS" \
   "$DURATION_SECONDS" \
-  "$START_TIME" \
+  "$EFFECTIVE_START_TIME" \
   "[$SELLER_ADDRESS]" \
   '[100]')"
 APPROVAL_CALLDATA="$(cast calldata 'setApprovalForAll(address,bool)' "$AUCTION_CONTRACT" true)"
@@ -146,7 +150,8 @@ printf '  Current owner: %s\n' "${CURRENT_OWNER:-unknown}"
 printf '  Starting price (ETH): %s\n' "$STARTING_PRICE_ETH"
 printf '  Starting price (wei): %s\n' "$STARTING_PRICE_WEI"
 printf '  Duration: %s seconds\n' "$DURATION_SECONDS"
-printf '  Start time: %s\n' "$START_TIME"
+printf '  Requested start time: %s\n' "$START_TIME"
+printf '  Effective start time: %s\n' "$EFFECTIVE_START_TIME"
 printf '  Currency: %s\n' "$CURRENCY_ADDRESS"
 printf '  Auction type: %s\n' "$AUCTION_TYPE"
 printf '  Approval status: %s\n' "$APPROVAL_STATUS"
@@ -186,7 +191,8 @@ RECEIPT_PAYLOAD="$(jq -n \
   --arg startingPriceEth "$STARTING_PRICE_ETH" \
   --arg startingPriceWei "$STARTING_PRICE_WEI" \
   --arg durationSeconds "$DURATION_SECONDS" \
-  --arg startTime "$START_TIME" \
+  --arg requestedStartTime "$START_TIME" \
+  --arg startTime "$EFFECTIVE_START_TIME" \
   --arg currency "$CURRENCY_ADDRESS" \
   --arg auctionType "$AUCTION_TYPE" \
   --arg approvalStatus "$APPROVAL_STATUS" \
@@ -214,6 +220,7 @@ RECEIPT_PAYLOAD="$(jq -n \
     startingPriceEth: $startingPriceEth,
     startingPriceWei: $startingPriceWei,
     durationSeconds: $durationSeconds,
+    requestedStartTime: $requestedStartTime,
     startTime: $startTime,
     currency: $currency,
     auctionType: $auctionType,

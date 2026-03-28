@@ -14,6 +14,7 @@ const STATE_DIR = path.join(PROJECT_ROOT, 'state');
 const STATUS_FILE = path.join(STATE_DIR, 'agentic-status.json');
 const LOG_FILE = path.join(STATE_DIR, 'agentic-last-decision.json');
 const SUPER_MINT_RECEIPTS_DIR = '/home/ubuntu/superrare-mint/receipts';
+const FLAT_AUTONOMOUS_STARTING_PRICE_ETH = '0.00101';
 
 function parseArg(name, fallback = null) {
   const idx = process.argv.indexOf(name);
@@ -146,22 +147,37 @@ function hoursSince(isoTimestamp) {
   return ms / (1000 * 60 * 60);
 }
 
+function auctionContractForChain(chain) {
+  switch (chain) {
+    case 'mainnet':
+      return '0x6D7c44773C52D396F43c2D511B81aa168E9a7a42';
+    case 'sepolia':
+      return '0xC8Edc7049b233641ad3723D6C60019D1c8771612';
+    case 'base':
+      return '0x51c36ffb05e17ed80ee5c02fa83d7677c5613de2';
+    case 'base-sepolia':
+      return '0x1f0c946f0ee87acb268d50ede6c9b4d010af65d2';
+    default:
+      return '';
+  }
+}
+
 function postureAuctionSettings(posture) {
   switch (posture) {
     case 'Quiet':
-      return { startingPriceEth: '0.05', durationSeconds: 60 * 60 * 72 };
+      return { startingPriceEth: FLAT_AUTONOMOUS_STARTING_PRICE_ETH, durationSeconds: 60 * 60 * 72 };
     case 'Measured':
-      return { startingPriceEth: '0.07', durationSeconds: 60 * 60 * 48 };
+      return { startingPriceEth: FLAT_AUTONOMOUS_STARTING_PRICE_ETH, durationSeconds: 60 * 60 * 48 };
     case 'Pressurized':
-      return { startingPriceEth: '0.08', durationSeconds: 60 * 60 * 36 };
+      return { startingPriceEth: FLAT_AUTONOMOUS_STARTING_PRICE_ETH, durationSeconds: 60 * 60 * 36 };
     case 'Assertive':
-      return { startingPriceEth: '0.09', durationSeconds: 60 * 60 * 24 };
+      return { startingPriceEth: FLAT_AUTONOMOUS_STARTING_PRICE_ETH, durationSeconds: 60 * 60 * 24 };
     case 'Severe':
-      return { startingPriceEth: '0.10', durationSeconds: 60 * 60 * 72 };
+      return { startingPriceEth: FLAT_AUTONOMOUS_STARTING_PRICE_ETH, durationSeconds: 60 * 60 * 72 };
     case 'Re-entry':
-      return { startingPriceEth: '0.08', durationSeconds: 60 * 60 * 48 };
+      return { startingPriceEth: FLAT_AUTONOMOUS_STARTING_PRICE_ETH, durationSeconds: 60 * 60 * 48 };
     default:
-      return { startingPriceEth: '0.07', durationSeconds: 60 * 60 * 48 };
+      return { startingPriceEth: FLAT_AUTONOMOUS_STARTING_PRICE_ETH, durationSeconds: 60 * 60 * 48 };
   }
 }
 
@@ -202,6 +218,68 @@ function buildDecisionContext() {
     priorCollectors,
     blockNumber,
     hoursSinceLastMint: hoursSince(lastMintTimestamp)
+  };
+}
+
+function probePendingSettlement(ctx) {
+  if (!ctx.lastIndex) {
+    return { needed: false, tokenId: 0, reason: 'no_minted_tokens' };
+  }
+
+  const chain = String(ctx.deploy.chain || CONFIG.chain || 'mainnet');
+  const auctionContract = auctionContractForChain(chain);
+  if (!auctionContract) {
+    return { needed: false, tokenId: ctx.lastIndex, reason: 'unsupported_chain', chain };
+  }
+
+  const args = [
+    'estimate',
+    auctionContract,
+    'settleAuction(address,uint256)',
+    ctx.contract,
+    String(ctx.lastIndex),
+    '--rpc-url',
+    ctx.rpcUrl
+  ];
+  if (ctx.artist) {
+    args.push('--from', ctx.artist);
+  }
+
+  try {
+    const gasEstimate = run('cast', args);
+    return {
+      needed: true,
+      tokenId: ctx.lastIndex,
+      chain,
+      auctionContract,
+      gasEstimate
+    };
+  } catch {
+    return {
+      needed: false,
+      tokenId: ctx.lastIndex,
+      chain,
+      auctionContract,
+      reason: 'not_settleable'
+    };
+  }
+}
+
+function settlePendingAuction(ctx) {
+  const beforeSettlementReceipts = listFiles(RECEIPTS_DIR, (f) => /rare-synethsis-auction-settle\.json$/.test(f));
+  const settleArgs = [
+    path.join(PROJECT_ROOT, 'scripts', 'settle-auction-via-bankr.sh'),
+    '--token-id', String(ctx.lastIndex),
+    '--deploy-receipt', ctx.deployReceiptFile,
+    '--broadcast',
+    '--note', `${CONFIG.collectionName} automatic auction settlement`
+  ];
+  const stdout = run('bash', settleArgs);
+  const afterSettlementReceipts = listFiles(RECEIPTS_DIR, (f) => /rare-synethsis-auction-settle\.json$/.test(f));
+  return {
+    executed: true,
+    stdout,
+    receiptFile: newestAdded(beforeSettlementReceipts, afterSettlementReceipts) || latestFile(RECEIPTS_DIR, (f) => /rare-synethsis-auction-settle\.json$/.test(f))
   };
 }
 
@@ -268,7 +346,41 @@ function main() {
   fs.mkdirSync(STATE_DIR, { recursive: true });
   ensureCombinedLedger();
 
-  const ctx = buildDecisionContext();
+  let ctx = buildDecisionContext();
+  let settlement = probePendingSettlement(ctx);
+
+  if (settlement.needed && !BROADCAST) {
+    const status = {
+      mode: DRY_LABEL,
+      checkedAt: new Date().toISOString(),
+      collection: CONFIG.collectionName,
+      contract: ctx.contract,
+      lastIndex: ctx.lastIndex,
+      nextIndex: ctx.lastIndex + 1,
+      lastMintTimestamp: ctx.lastMintTimestamp,
+      hoursSinceLastMint: Number(ctx.hoursSinceLastMint.toFixed(2)),
+      lastState: ctx.lastSummary.state,
+      lastOwner: ctx.lastOwner,
+      artist: ctx.artist,
+      settlement,
+      decision: {
+        shouldMint: false,
+        reason: 'pending_settlement',
+        tokenId: ctx.lastIndex
+      },
+      preview: null
+    };
+    writeJSON(LOG_FILE, status);
+    writeJSON(STATUS_FILE, status);
+    console.log(JSON.stringify(status, null, 2));
+    return;
+  }
+
+  if (settlement.needed && BROADCAST) {
+    settlement = { ...settlement, ...settlePendingAuction(ctx) };
+    ctx = buildDecisionContext();
+  }
+
   const decision = decideTrigger(ctx);
   const nextIndex = ctx.lastIndex + 1;
   const preview = decision.shouldMint
@@ -293,6 +405,7 @@ function main() {
     lastState: ctx.lastSummary.state,
     lastOwner: ctx.lastOwner,
     artist: ctx.artist,
+    settlement,
     decision,
     preview
   };
