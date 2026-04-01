@@ -162,6 +162,52 @@ function auctionContractForChain(chain) {
   }
 }
 
+function probeAuctionStatus(ctx, tokenId = ctx.lastIndex) {
+  if (!tokenId) {
+    return { tokenId: 0, configured: false, status: 'MISSING', reason: 'no_token' };
+  }
+
+  const chain = String(ctx.deploy.chain || CONFIG.chain || 'mainnet');
+  const args = [
+    path.join(PROJECT_ROOT, 'scripts', 'auction-status.sh'),
+    '--token-id', String(tokenId),
+    '--contract-mode', 'ownership-given',
+    '--contract', ctx.contract,
+    '--chain', chain
+  ];
+
+  try {
+    const out = run('bash', args);
+    const status = JSON.parse(out);
+    const seller = normalizeAddress(status.seller);
+    const configured = seller !== '0x0000000000000000000000000000000000000000'
+      || String(status.creationBlock || '0') !== '0'
+      || String(status.startingTime || '0') !== '0'
+      || String(status.minimumBid || '0') !== '0';
+    return {
+      ...status,
+      tokenId,
+      configured,
+      reason: configured ? 'auction_present' : 'auction_missing'
+    };
+  } catch (error) {
+    return {
+      tokenId,
+      configured: false,
+      status: 'UNKNOWN',
+      reason: 'auction_status_unavailable',
+      error: String(error && error.message ? error.message : error)
+    };
+  }
+}
+
+function latestTokenNeedsAuction(ctx, auctionStatus) {
+  if (!ctx.lastIndex) return false;
+  if (!auctionStatus || auctionStatus.error) return false;
+  if (ctx.lastOwner !== ctx.artist) return false;
+  return auctionStatus.configured !== true;
+}
+
 function postureAuctionSettings(posture) {
   switch (posture) {
     case 'Quiet':
@@ -283,6 +329,28 @@ function settlePendingAuction(ctx) {
   };
 }
 
+function recoverLatestAuction(ctx) {
+  const beforeAuctionReceipts = listFiles(RECEIPTS_DIR, (f) => /rare-synethsis-auction-create\.json$/.test(f));
+  const auctionSettings = postureAuctionSettings(ctx.lastSummary.posture);
+  const auctionArgs = [
+    path.join(PROJECT_ROOT, 'scripts', 'auction-via-bankr.sh'),
+    '--token-id', String(ctx.lastIndex),
+    '--starting-price', auctionSettings.startingPriceEth,
+    '--duration', String(auctionSettings.durationSeconds),
+    '--deploy-receipt', ctx.deployReceiptFile,
+    '--broadcast',
+    '--note', `${CONFIG.collectionName} recovery ${ctx.lastSummary.posture} auction`
+  ];
+  const stdout = run('bash', auctionArgs);
+  const afterAuctionReceipts = listFiles(RECEIPTS_DIR, (f) => /rare-synethsis-auction-create\.json$/.test(f));
+  return {
+    executed: true,
+    settings: auctionSettings,
+    stdout,
+    receiptFile: newestAdded(beforeAuctionReceipts, afterAuctionReceipts) || latestFile(RECEIPTS_DIR, (f) => /rare-synethsis-auction-create\.json$/.test(f))
+  };
+}
+
 function decideTrigger(ctx) {
   if (ctx.lastIndex >= Number(CONFIG.maxSupply || 101)) {
     return { shouldMint: false, reason: 'max_supply_reached' };
@@ -348,6 +416,7 @@ function main() {
 
   let ctx = buildDecisionContext();
   let settlement = probePendingSettlement(ctx);
+  let latestAuction = probeAuctionStatus(ctx);
 
   if (settlement.needed && !BROADCAST) {
     const status = {
@@ -363,6 +432,7 @@ function main() {
       lastOwner: ctx.lastOwner,
       artist: ctx.artist,
       settlement,
+      latestAuction,
       decision: {
         shouldMint: false,
         reason: 'pending_settlement',
@@ -379,6 +449,65 @@ function main() {
   if (settlement.needed && BROADCAST) {
     settlement = { ...settlement, ...settlePendingAuction(ctx) };
     ctx = buildDecisionContext();
+    latestAuction = probeAuctionStatus(ctx);
+  }
+
+  if (latestTokenNeedsAuction(ctx, latestAuction) && !BROADCAST) {
+    const status = {
+      mode: DRY_LABEL,
+      checkedAt: new Date().toISOString(),
+      collection: CONFIG.collectionName,
+      contract: ctx.contract,
+      lastIndex: ctx.lastIndex,
+      nextIndex: ctx.lastIndex + 1,
+      lastMintTimestamp: ctx.lastMintTimestamp,
+      hoursSinceLastMint: Number(ctx.hoursSinceLastMint.toFixed(2)),
+      lastState: ctx.lastSummary.state,
+      lastOwner: ctx.lastOwner,
+      artist: ctx.artist,
+      settlement,
+      latestAuction,
+      decision: {
+        shouldMint: false,
+        reason: 'pending_auction_recovery',
+        tokenId: ctx.lastIndex
+      },
+      preview: null
+    };
+    writeJSON(LOG_FILE, status);
+    writeJSON(STATUS_FILE, status);
+    console.log(JSON.stringify(status, null, 2));
+    return;
+  }
+
+  if (latestTokenNeedsAuction(ctx, latestAuction) && BROADCAST) {
+    const auctionRecovery = recoverLatestAuction(ctx);
+    const finalStatus = {
+      mode: DRY_LABEL,
+      checkedAt: new Date().toISOString(),
+      collection: CONFIG.collectionName,
+      contract: ctx.contract,
+      lastIndex: ctx.lastIndex,
+      nextIndex: ctx.lastIndex + 1,
+      lastMintTimestamp: ctx.lastMintTimestamp,
+      hoursSinceLastMint: Number(ctx.hoursSinceLastMint.toFixed(2)),
+      lastState: ctx.lastSummary.state,
+      lastOwner: ctx.lastOwner,
+      artist: ctx.artist,
+      settlement,
+      latestAuction,
+      executed: true,
+      recovery: {
+        type: 'auction',
+        tokenId: ctx.lastIndex,
+        summary: ctx.lastSummary,
+        ...auctionRecovery
+      }
+    };
+    writeJSON(LOG_FILE, finalStatus);
+    writeJSON(STATUS_FILE, finalStatus);
+    console.log(JSON.stringify(finalStatus, null, 2));
+    return;
   }
 
   const decision = decideTrigger(ctx);
@@ -406,6 +535,7 @@ function main() {
     lastOwner: ctx.lastOwner,
     artist: ctx.artist,
     settlement,
+    latestAuction,
     decision,
     preview
   };

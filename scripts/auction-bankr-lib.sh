@@ -121,6 +121,12 @@ submit_bankr_contract_call() {
     -H "Content-Type: application/json" \
     -d "$request_payload")"
 
+  [ -n "$response" ] || err "Bankr submit returned empty response"
+  if ! echo "$response" | jq -e . >/dev/null 2>&1; then
+    printf 'Bankr submit returned non-JSON response:\n%s\n' "$response" >&2
+    err "Bankr submit returned non-JSON response"
+  fi
+
   success="$(echo "$response" | jq -r '.success // false')"
   if [ "$success" != "true" ]; then
     echo "$response" | jq .
