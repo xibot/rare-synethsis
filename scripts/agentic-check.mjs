@@ -198,6 +198,20 @@ function getOrRecoverSummary(index, latestMintReceipt) {
   return recovered;
 }
 
+
+function collectionIndexNumber(summary) {
+  const value = summary?.metadataCollectionIndex || summary?.collectionIndex || '';
+  const match = String(value).match(/^(\d+)\s*\//);
+  return match ? Number(match[1]) : 0;
+}
+
+function assertSummaryMatchesTokenId(summary, tokenId) {
+  const metadataIndex = collectionIndexNumber(summary);
+  if (metadataIndex && metadataIndex !== tokenId) {
+    throw new Error(`Latest summary metadata index is ${metadataIndex}, but latest onchain token is ${tokenId}. Repair token metadata before auctioning or minting again.`);
+  }
+}
+
 function ensureCombinedLedger() {
   const used = new Set();
   const summaryFiles = [];
@@ -348,6 +362,7 @@ function buildDecisionContext() {
   const lastMintTimestamp = latestMintReceipt.timestamp;
   const lastSummary = getOrRecoverSummary(lastIndex, latestMintReceipt);
   if (!lastSummary) throw new Error(`Missing summary for token ${lastIndex}`);
+  assertSummaryMatchesTokenId(lastSummary, lastIndex);
   const lastOwner = normalizeAddress(ownerOf(contract, lastIndex, rpcUrl));
   const priorCollectors = new Set();
   for (const tokenId of mintedIds.slice(0, -1)) {
