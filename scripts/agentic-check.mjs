@@ -132,6 +132,17 @@ function findLatestExternalMintReceipt() {
   return latestFile(SUPER_MINT_RECEIPTS_DIR, (f) => /superrare-mint\.json$/.test(f));
 }
 
+function findLatestTokenUriUpdateReceipt(tokenId) {
+  const files = listFiles(RECEIPTS_DIR, (f) => /rare-synethsis-token-uri-update\.json$/.test(f)).reverse();
+  for (const file of files) {
+    try {
+      const receipt = readJSON(file);
+      if (receiptTokenId(receipt) === tokenId) return file;
+    } catch {}
+  }
+  return null;
+}
+
 function findSummaryPath(index) {
   const padded = zeroPad(index);
   const candidates = [
@@ -191,8 +202,11 @@ function summaryFromMintReceipt(receipt) {
 function getOrRecoverSummary(index, latestMintReceipt) {
   const summary = loadSummary(index);
   if (summary) return summary;
-  if (receiptTokenId(latestMintReceipt) !== index) return null;
-  const recovered = summaryFromMintReceipt(latestMintReceipt);
+  const updateReceiptFile = findLatestTokenUriUpdateReceipt(index);
+  const updateReceipt = updateReceiptFile ? readJSON(updateReceiptFile) : null;
+  const sourceReceipt = updateReceipt || (receiptTokenId(latestMintReceipt) === index ? latestMintReceipt : null);
+  if (!sourceReceipt) return null;
+  const recovered = summaryFromMintReceipt(sourceReceipt);
   if (!recovered) return null;
   writeJSON(path.join(OUTPUT_DIR, zeroPad(index), 'summary.json'), recovered);
   return recovered;
