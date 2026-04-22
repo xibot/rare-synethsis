@@ -42,6 +42,13 @@ function run(cmd, args, opts = {}) {
   return execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...opts }).trim();
 }
 
+function commandErrorText(error) {
+  return [error?.message, error?.stdout, error?.stderr]
+    .filter(Boolean)
+    .map((value) => String(value))
+    .join(String.fromCharCode(10));
+}
+
 function safeRun(cmd, args) {
   try {
     return run(cmd, args);
@@ -67,9 +74,43 @@ function normalizeAddress(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function isMissingTokenOwnerError(error) {
+  const text = commandErrorText(error).toLowerCase();
+  const missingToken = [
+    'nonexistent token',
+    'non-existent token',
+    'owner query for nonexistent token',
+    'erc721nonexistenttoken',
+    'invalid token id',
+    'execution reverted'
+  ].some((needle) => text.includes(needle));
+  const transportFailure = [
+    'connection',
+    'timeout',
+    'timed out',
+    'dns',
+    'could not resolve',
+    'network',
+    'rate limit',
+    '429',
+    '502',
+    '503',
+    '504'
+  ].some((needle) => text.includes(needle));
+  return missingToken && !transportFailure;
+}
+
 function ownerOf(contract, tokenId, rpcUrl) {
-  const out = safeRun('cast', ['call', contract, 'ownerOf(uint256)(address)', String(tokenId), '--rpc-url', rpcUrl]);
-  return out ? out.trim() : '';
+  try {
+    const out = run('cast', ['call', contract, 'ownerOf(uint256)(address)', String(tokenId), '--rpc-url', rpcUrl]).trim();
+    if (!/^0x[0-9a-fA-F]{40}$/.test(out)) {
+      throw new Error(`ownerOf(${tokenId}) returned an unexpected value: ${out || '<empty>'}`);
+    }
+    return out;
+  } catch (error) {
+    if (isMissingTokenOwnerError(error)) return '';
+    throw new Error(`ownerOf(${tokenId}) failed; refusing to infer supply from incomplete onchain data. ${commandErrorText(error)}`);
+  }
 }
 
 function currentBlockNumber(rpcUrl) {
@@ -107,6 +148,56 @@ function loadSummary(index) {
   return readJSON(file);
 }
 
+function decodeMetadataTokenUri(tokenUri) {
+  const prefix = 'data:application/json;base64,';
+  const value = String(tokenUri || '');
+  if (!value.startsWith(prefix)) return null;
+  try {
+    return JSON.parse(Buffer.from(value.slice(prefix.length), 'base64').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function metadataAttribute(metadata, traitType) {
+  return metadata?.attributes?.find((entry) => entry?.trait_type === traitType)?.value ?? '';
+}
+
+function parsePercent(value) {
+  const parsed = Number(String(value || '').replace('%', ''));
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function summaryFromMintReceipt(receipt) {
+  const metadata = decodeMetadataTokenUri(receipt?.tokenUri);
+  if (!metadata) return null;
+  return {
+    state: metadataAttribute(metadata, 'State'),
+    trigger: metadataAttribute(metadata, 'Trigger'),
+    posture: metadataAttribute(metadata, 'Auction Posture'),
+    polarity: metadataAttribute(metadata, 'Polarity'),
+    retentionRatio: parsePercent(metadataAttribute(metadata, 'Retention')),
+    dispersion: metadataAttribute(metadata, 'Dispersion'),
+    symmetry: metadataAttribute(metadata, 'Symmetry'),
+    retainedCount: metadata?.aai?.retainedPixels,
+    fieldCount: metadata?.aai?.dispersedPixels,
+    compositionHash: metadata?.aai?.compositionHash,
+    title: metadata?.name,
+    tokenId: receiptTokenId(receipt),
+    metadataCollectionIndex: metadataAttribute(metadata, 'Collection Index')
+  };
+}
+
+function getOrRecoverSummary(index, latestMintReceipt) {
+  const summary = loadSummary(index);
+  if (summary) return summary;
+  if (receiptTokenId(latestMintReceipt) !== index) return null;
+  const recovered = summaryFromMintReceipt(latestMintReceipt);
+  if (!recovered) return null;
+  writeJSON(path.join(OUTPUT_DIR, zeroPad(index), 'summary.json'), recovered);
+  return recovered;
+}
+
 function ensureCombinedLedger() {
   const used = new Set();
   const summaryFiles = [];
@@ -140,6 +231,17 @@ function getMintedTokenIds(contract, rpcUrl, maxSupply) {
     ids.push(tokenId);
   }
   return ids;
+}
+
+function latestMintedTokenId(mintedIds) {
+  return mintedIds.length ? Math.max(...mintedIds) : 0;
+}
+
+function receiptTokenId(receipt) {
+  const raw = receipt?.tokenId ?? receipt?.tokenID ?? receipt?.token_id;
+  if (raw === undefined || raw === null || raw === '') return 0;
+  const tokenId = Number(raw);
+  return Number.isSafeInteger(tokenId) && tokenId > 0 ? tokenId : 0;
 }
 
 function hoursSince(isoTimestamp) {
@@ -235,12 +337,16 @@ function buildDecisionContext() {
   const artist = normalizeAddress(deploy.ownerAddress);
   const maxSupply = Number(CONFIG.maxSupply || 101);
   const mintedIds = getMintedTokenIds(contract, rpcUrl, maxSupply);
-  const lastIndex = mintedIds.length;
+  const lastIndex = latestMintedTokenId(mintedIds);
   const latestMintReceiptFile = findLatestMintReceipt();
   if (!latestMintReceiptFile) throw new Error('Missing project mint receipt');
   const latestMintReceipt = readJSON(latestMintReceiptFile);
+  const latestReceiptTokenId = receiptTokenId(latestMintReceipt);
+  if (latestReceiptTokenId && latestReceiptTokenId !== lastIndex) {
+    throw new Error(`Latest project mint receipt is for token ${latestReceiptTokenId}, but latest onchain token is ${lastIndex}. Sync or repair receipts before minting again.`);
+  }
   const lastMintTimestamp = latestMintReceipt.timestamp;
-  const lastSummary = loadSummary(lastIndex);
+  const lastSummary = getOrRecoverSummary(lastIndex, latestMintReceipt);
   if (!lastSummary) throw new Error(`Missing summary for token ${lastIndex}`);
   const lastOwner = normalizeAddress(ownerOf(contract, lastIndex, rpcUrl));
   const priorCollectors = new Set();
@@ -258,6 +364,7 @@ function buildDecisionContext() {
     mintedIds,
     lastIndex,
     latestMintReceiptFile,
+    latestReceiptTokenId,
     lastMintTimestamp,
     lastSummary,
     lastOwner,
@@ -313,10 +420,13 @@ function probePendingSettlement(ctx) {
 
 function settlePendingAuction(ctx) {
   const beforeSettlementReceipts = listFiles(RECEIPTS_DIR, (f) => /rare-synethsis-auction-settle\.json$/.test(f));
+  const chain = String(ctx.deploy.chain || CONFIG.chain || 'mainnet');
   const settleArgs = [
     path.join(PROJECT_ROOT, 'scripts', 'settle-auction-via-bankr.sh'),
     '--token-id', String(ctx.lastIndex),
-    '--deploy-receipt', ctx.deployReceiptFile,
+    '--contract-mode', 'ownership-given',
+    '--contract', ctx.contract,
+    '--chain', chain,
     '--broadcast',
     '--note', `${CONFIG.collectionName} automatic auction settlement`
   ];
@@ -332,12 +442,15 @@ function settlePendingAuction(ctx) {
 function recoverLatestAuction(ctx) {
   const beforeAuctionReceipts = listFiles(RECEIPTS_DIR, (f) => /rare-synethsis-auction-create\.json$/.test(f));
   const auctionSettings = postureAuctionSettings(ctx.lastSummary.posture);
+  const chain = String(ctx.deploy.chain || CONFIG.chain || 'mainnet');
   const auctionArgs = [
     path.join(PROJECT_ROOT, 'scripts', 'auction-via-bankr.sh'),
     '--token-id', String(ctx.lastIndex),
+    '--contract-mode', 'ownership-given',
+    '--contract', ctx.contract,
+    '--chain', chain,
     '--starting-price', auctionSettings.startingPriceEth,
     '--duration', String(auctionSettings.durationSeconds),
-    '--deploy-receipt', ctx.deployReceiptFile,
     '--broadcast',
     '--note', `${CONFIG.collectionName} recovery ${ctx.lastSummary.posture} auction`
   ];
@@ -562,18 +675,29 @@ function main() {
 
   const afterMintReceipts = listFiles(SUPER_MINT_RECEIPTS_DIR, (f) => /superrare-mint\.json$/.test(f));
   const externalMintReceipt = newestAdded(beforeMintReceipts, afterMintReceipts) || findLatestExternalMintReceipt();
-  const projectMintReceipt = copyMintReceipt(externalMintReceipt, nextIndex);
+  if (!externalMintReceipt) throw new Error('Mint completed but no SuperRare mint receipt was found; refusing to auction an inferred token ID.');
+  const externalMintReceiptData = readJSON(externalMintReceipt);
+  const actualMintedTokenId = receiptTokenId(externalMintReceiptData);
+  if (!actualMintedTokenId) throw new Error(`Mint receipt ${externalMintReceipt} does not include a tokenId; refusing to auction an inferred token ID.`);
+  if (actualMintedTokenId !== nextIndex) {
+    throw new Error(`Mint receipt tokenId ${actualMintedTokenId} did not match expected token ${nextIndex}; refusing to auction the wrong token.`);
+  }
+  const projectMintReceipt = copyMintReceipt(externalMintReceipt, actualMintedTokenId);
   const nextSummaryFile = path.join(OUTPUT_DIR, zeroPad(nextIndex), 'summary.json');
   const nextSummary = readJSON(nextSummaryFile);
   ensureCombinedLedger();
 
   const auctionSettings = postureAuctionSettings(nextSummary.posture);
+  const auctionTokenId = actualMintedTokenId;
+  const auctionChain = String(ctx.deploy.chain || CONFIG.chain || 'mainnet');
   const auctionArgs = [
     path.join(PROJECT_ROOT, 'scripts', 'auction-via-bankr.sh'),
-    '--token-id', String(nextIndex),
+    '--token-id', String(auctionTokenId),
+    '--contract-mode', 'ownership-given',
+    '--contract', ctx.contract,
+    '--chain', auctionChain,
     '--starting-price', auctionSettings.startingPriceEth,
     '--duration', String(auctionSettings.durationSeconds),
-    '--deploy-receipt', ctx.deployReceiptFile,
     '--broadcast',
     '--note', `${CONFIG.collectionName} autonomous ${nextSummary.posture} auction`
   ];
@@ -585,11 +709,15 @@ function main() {
     executed: true,
     mint: {
       stdout: mintStdout,
+      expectedIndex: nextIndex,
+      actualTokenId: actualMintedTokenId,
+      externalReceiptFile: externalMintReceipt,
       summaryFile: nextSummaryFile,
       receiptFile: projectMintReceipt,
       summary: nextSummary
     },
     auction: {
+      tokenId: auctionTokenId,
       settings: auctionSettings,
       stdout: auctionStdout,
       receiptFile: latestAuctionReceipt
