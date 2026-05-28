@@ -1,0 +1,13 @@
+{
+  "schema": "aaigotchi.rare-synethsis.auction-settle.receipt.v1",
+  "timestamp": "2026-05-28T21:05:14Z",
+  "chain": "mainnet",
+  "chainId": 1,
+  "auctionContract": "0x6D7c44773C52D396F43c2D511B81aa168E9a7a42",
+  "collectionContract": "0xefA7646D0143448D15fedAf9154D187bE78A986E",
+  "tokenId": "30",
+  "txHash": "0x8e414b129588c27988f49ef53de956376036c66c2e7a54d38d07efb20a99c009",
+  "explorerUrl": "https://etherscan.io/tx/0x8e414b129588c27988f49ef53de956376036c66c2e7a54d38d07efb20a99c009",
+  "blockNumber": "0x1807784",
+  "txStatus": "0x1"
+}
