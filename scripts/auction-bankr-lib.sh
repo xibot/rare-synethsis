@@ -97,14 +97,16 @@ submit_bankr_contract_call() {
   local data="$2"
   local description="$3"
 
-  local bankr_api_key bankr_api_url request_payload response success tx_hash receipt_json block_number tx_status
+  local bankr_api_key bankr_submit_url bankr_wait_for_confirmation request_payload response success tx_hash receipt_json block_number tx_status
   bankr_api_key="$(resolve_bankr_api_key)"
-  bankr_api_url="$(resolve_bankr_api_url)"
+  bankr_submit_url="$(resolve_bankr_submit_url)"
+  bankr_wait_for_confirmation="$(bankr_wait_for_confirmation_json)"
   request_payload="$(jq -n \
     --arg to "$to" \
     --argjson chainId "$CHAIN_ID" \
     --arg data "$data" \
     --arg description "$description" \
+    --argjson waitForConfirmation "$bankr_wait_for_confirmation" \
     '{
       transaction: {
         to: $to,
@@ -113,10 +115,10 @@ submit_bankr_contract_call() {
         data: $data
       },
       description: $description,
-      waitForConfirmation: true
+      waitForConfirmation: $waitForConfirmation
     }')"
 
-  response="$(curl -sS --max-time "${BANKR_SUBMIT_TIMEOUT_SECONDS:-60}" -X POST "$bankr_api_url/agent/submit" \
+  response="$(curl -sS --max-time "${BANKR_SUBMIT_TIMEOUT_SECONDS:-60}" -X POST "$bankr_submit_url" \
     -H "X-API-Key: $bankr_api_key" \
     -H "Content-Type: application/json" \
     -d "$request_payload")"

@@ -437,9 +437,35 @@ function chooseField(seed, stateName, retained, rng, drift) {
   return { field, removedCount: removed.length };
 }
 
-function pointKeyToPath(key) {
-  const [x, y] = key.split(",").map(Number);
-  return `M${x} ${y}h1v1H${x}z`;
+function pointKeysToRunPath(keys) {
+  const rows = new Map();
+  for (const key of keys) {
+    const [x, y] = key.split(",").map(Number);
+    if (!rows.has(y)) rows.set(y, []);
+    rows.get(y).push(x);
+  }
+
+  const segments = [];
+  for (const y of [...rows.keys()].sort((a, b) => a - b)) {
+    const xs = [...new Set(rows.get(y))].sort((a, b) => a - b);
+    if (!xs.length) continue;
+
+    let start = xs[0];
+    let previous = xs[0];
+    for (let i = 1; i <= xs.length; i += 1) {
+      const x = xs[i];
+      if (x === previous + 1) {
+        previous = x;
+        continue;
+      }
+
+      const width = previous - start + 1;
+      segments.push(`M${start} ${y}h${width}v1H${start}z`);
+      start = x;
+      previous = x;
+    }
+  }
+  return segments.join("");
 }
 
 function mapDispersionLabel(def, fieldCount, removedCount) {
@@ -549,8 +575,8 @@ export function buildToken({ index, state, trigger = "Cycle", blockNumber = 0, p
 
     const background = polarity === "Positive" ? "#fff" : "#000";
     const foreground = polarity === "Positive" ? "#000" : "#fff";
-    const bodyPath = [...retained].sort().map(pointKeyToPath).join("");
-    const fieldPath = [...field].sort().map(pointKeyToPath).join("");
+    const bodyPath = pointKeysToRunPath(retained);
+    const fieldPath = pointKeysToRunPath(field);
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" shape-rendering="crispEdges"><path d="M0 0h32v32H0z" fill="${background}"/><path d="${bodyPath}${fieldPath}" fill="${foreground}"/></svg>`;
     const retentionRatio = Math.round((retained.size / seed.points.length) * 100);
     const symmetry = mapSymmetryLabel(symmetryRatio);
